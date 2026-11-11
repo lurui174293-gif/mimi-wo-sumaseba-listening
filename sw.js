@@ -4,6 +4,13 @@ self.addEventListener('activate', event => event.waitUntil(self.clients.claim())
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith((async () => {
+    const path=new URL(event.request.url).pathname;
+    if(event.request.mode==='navigate'||/\.(html|js)$/.test(path)){
+      try{
+        const fresh=await fetch(event.request);
+        if(fresh.ok){const cache=await caches.open(CACHE);await cache.put(event.request,fresh.clone());return fresh}
+      }catch{}
+    }
     const cached = await caches.match(event.request, {ignoreSearch:true, ignoreVary:true});
     if (cached) {
       const range = event.request.headers.get('Range');
