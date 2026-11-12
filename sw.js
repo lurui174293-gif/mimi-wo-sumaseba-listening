@@ -8,10 +8,19 @@ self.addEventListener('fetch', event => {
     if(event.request.mode==='navigate'||/\.(html|js)$/.test(path)){
       try{
         const fresh=await fetch(event.request);
-        if(fresh.ok){const cache=await caches.open(CACHE);await cache.put(event.request,fresh.clone());return fresh}
+        if(fresh.ok){
+          const cache=await caches.open(CACHE);
+          await cache.put(event.request,fresh.clone());
+          if(path.endsWith('/index.html')){
+            await cache.put(new URL('index.html',self.registration.scope).href,fresh.clone());
+            await cache.put(self.registration.scope,fresh.clone());
+          }
+          if(path.endsWith('/data.js'))await cache.put(new URL('data.js',self.registration.scope).href,fresh.clone());
+          return fresh;
+        }
       }catch{}
     }
-    const cached = await caches.match(event.request, {ignoreSearch:true, ignoreVary:true});
+    const cached = await caches.match(event.request) || await caches.match(event.request, {ignoreSearch:true, ignoreVary:true});
     if (cached) {
       const range = event.request.headers.get('Range');
       if (range) {
